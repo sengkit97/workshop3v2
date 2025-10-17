@@ -36,8 +36,6 @@ jobs:
           echo "🧹 Cleaning up Docker caches (keeping built image)..."
           # Remove old build caches (older than 1 hour)
           docker builder prune -af --filter "until=1h"
-          # Remove dangling images
-          docker image prune -af
           echo "✅ Pre-Trivy cleanup complete"
           df -h
 
