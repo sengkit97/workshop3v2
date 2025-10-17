@@ -12,13 +12,15 @@ jobs:
 
     steps:
       # Step 1: Checkout repository
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Step 2: Setup Docker Buildx
-      - uses: docker/setup-buildx-action@v2
+      # Step 2: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      # Step 3: Build lightweight image
-      - name: Build Docker image
+      # Step 3: Build lightweight multi-stage Docker image
+      - name: Build lightweight Docker image
         id: build-image
         run: |
           IMAGE_NAME=my-lightweight-app
@@ -28,45 +30,37 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "✅ Built image $IMAGE_NAME:$TAG"
 
-      # Step 4: Aggressive cleanup before Trivy
-      - name: Cleanup Docker + OS to free space
+      # Step 4: Cleanup before Trivy scan to free disk space
+      - name: Delete /opt to free disk space
         run: |
-          echo "🧹 Cleaning Docker caches..."
-          docker builder prune -af --all
-          docker system prune -af --volumes
-          docker image prune -f
-          echo "🧹 Removing /opt and large dirs..."
-          sudo rm -rf /opt /usr/share/dotnet /usr/local/share/boost
-          sudo apt-get clean
+          echo "🧹 Deleting /opt to free space..."
+          sudo rm -rf /opt
+          echo "✅ /opt deleted"
           df -h
 
       # Step 5: Show image size
       - name: Show image size
         run: docker images ${{ env.IMAGE_NAME }}:${{ env.TAG }}
 
-      # Step 6: Run Trivy scan using /mnt for temp storage
+      # Step 6: Run Trivy vulnerability scanner
       - name: Run Trivy vulnerability scanner
-        run: |
-          mkdir -p /mnt/trivy-temp
-          export TMPDIR=/mnt/trivy-temp
-          TRIVY_OUTPUT=trivy-report.txt
-          trivy image \
-            --severity CRITICAL,HIGH \
-            --ignore-unfixed \
-            --format table \
-            ${{ env.IMAGE_NAME }}:${{ env.TAG }} > $TRIVY_OUTPUT
-          cat $TRIVY_OUTPUT
-
-      # Step 7: Upload Trivy report as artifact
-      - uses: actions/upload-artifact@v3
+        uses: aquasecurity/trivy-action@master
         with:
-          name: trivy-report
-          path: trivy-report.txt
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.TAG }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'       # set '1' to fail pipeline on findings
+          ignore-unfixed: true
+          scanners: 'vuln'     # disable secret scanning for faster/smaller scan
+          cache-dir: .trivy
+        env:
+          TEMPDIR: '/mnt'
 
-      # Step 8: Cleanup Docker after scan
+      # Step 7: Cleanup Docker cache after build and scan
       - name: Cleanup Docker cache
         if: always()
         run: |
-          echo "🧹 Post-scan cleanup..."
+          echo "🧹 Cleaning up Docker after scan..."
           docker system prune -af --volumes
+          echo "✅ Cleanup complete"
           df -h
