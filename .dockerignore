@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment and config files
+.env
+*.env
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Data and logs
+*.db
+*.sqlite3
+*.log
+logs/
+
+# Tests and docs
+tests/
+docs/
+examples/
+
+# IDE/project files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
