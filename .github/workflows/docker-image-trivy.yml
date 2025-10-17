@@ -52,6 +52,9 @@ jobs:
           exit-code: '0'       # set '1' to fail pipeline on findings
           ignore-unfixed: true
           scanners: 'vuln'     # disable secret scanning for faster/smaller scan
+          cache-dir: .trivy
+        env:
+          TEMPDIR: '/mnt'
 
       # Step 7: Cleanup Docker cache after build and scan
       - name: Cleanup Docker cache
