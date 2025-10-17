@@ -31,12 +31,11 @@ jobs:
           echo "✅ Built image $IMAGE_NAME:$TAG"
 
       # Step 4: Cleanup before Trivy scan to free disk space
-      - name: Cleanup Docker caches before Trivy
+      - name: Delete /opt to free disk space
         run: |
-          echo "🧹 Cleaning up Docker caches (keeping built image)..."
-          # Remove old build caches (older than 1 hour)
-          docker builder prune -af --filter "until=1h"
-          echo "✅ Pre-Trivy cleanup complete"
+          echo "🧹 Deleting /opt to free space..."
+          sudo rm -rf /opt
+          echo "✅ /opt deleted"
           df -h
 
       # Step 5: Show image size
