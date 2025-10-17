@@ -1,4 +1,4 @@
-name: Docker Image CI
+  name: Docker Image CI
 
 on:
   push:
@@ -34,6 +34,17 @@ jobs:
       # Step 4: Show image size
       - name: Show image size
         run: docker images ${{ env.IMAGE_NAME }}:${{ env.TAG }}
+
+      # Step 4.5 clean up to get space for scan  
+      - name: Cleanup Docker cache
+        if: always()
+        run: |
+          echo "🧹 Removing dangling and unused Docker objects..."
+          docker system prune -af --volumes
+          echo "🧹 Removing build cache objects..."
+          docker builder prune -af --all
+          echo "✅ Docker cleanup complete!"
+          df -h
 
       # Step 5: Scan image with Trivy
       - name: Run Trivy vulnerability scanner
