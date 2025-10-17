@@ -31,6 +31,8 @@ ENV PYTHONUNBUFFERED=1
 COPY --from=builder /usr/local /usr/local
 COPY --from=builder /app /app
 
+# Expose port 8000
 EXPOSE 8000
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use a minimal entrypoint and CMD
+ENTRYPOINT ["python"]
+CMD ["day02.py"]
