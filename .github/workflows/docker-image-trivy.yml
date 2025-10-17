@@ -15,4 +15,52 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Docker Bui
+      # Step 2: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Step 3: Build lightweight multi-stage Docker image
+      - name: Build lightweight Docker image
+        id: build-image
+        run: |
+          IMAGE_NAME=my-lightweight-app
+          TAG=$(date +%s)
+          docker build . -f Dockerfile -t $IMAGE_NAME:$TAG
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "✅ Built image $IMAGE_NAME:$TAG"
+
+      # Step 4: Cleanup before Trivy scan to free disk space
+      - name: Cleanup Docker caches before Trivy
+        run: |
+          echo "🧹 Cleaning up Docker caches (keeping built image)..."
+          # Remove old build caches (older than 1 hour)
+          docker builder prune -af --filter "until=1h"
+          # Remove dangling images
+          docker image prune -af --filter "dangling=true"
+          echo "✅ Pre-Trivy cleanup complete"
+          df -h
+
+      # Step 5: Show image size
+      - name: Show image size
+        run: docker images ${{ env.IMAGE_NAME }}:${{ env.TAG }}
+
+      # Step 6: Run Trivy vulnerability scanner
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.TAG }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'       # set '1' to fail pipeline on findings
+          ignore-unfixed: true
+          scanners: 'vuln'     # disable secret scanning for faster/smaller scan
+
+      # Step 7: Cleanup Docker cache after build and scan
+      - name: Cleanup Docker cache
+        if: always()
+        run: |
+          echo "🧹 Cleaning up Docker after scan..."
+          docker system prune -af --volumes
+          echo "✅ Cleanup complete"
+          df -h
