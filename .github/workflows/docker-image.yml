@@ -1,0 +1,40 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Step 2: Set up Docker (already installed on ubuntu-latest, but optional)
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    # Step 3: Log in to Docker Hub (optional if pushing)
+    # - name: Log in to Docker Hub
+    #   uses: docker/login-action@v2
+    #   with:
+    #     username: ${{ secrets.DOCKER_USERNAME }}
+    #     password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # Step 4: Build the Docker image
+    - name: Build Docker image
+      run: |
+        IMAGE_NAME=my-image-name
+        TAG=$(date +%s)
+        docker build . -f Dockerfile -t $IMAGE_NAME:$TAG
+        echo "Built image $IMAGE_NAME:$TAG"
+
+    # Step 5: (Optional) Push image to Docker Hub
+    # - name: Push Docker image
+    #   run: docker push $IMAGE_NAME:$TAG
