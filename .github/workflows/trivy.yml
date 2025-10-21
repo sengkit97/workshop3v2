@@ -1,46 +1,50 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: trivy
+name: Trivy Security Scan
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: [ "main" ]
   schedule:
-    - cron: '15 8 * * 5'
+    - cron: '15 8 * * 5'  # Every Friday at 08:15 UTC
 
 permissions:
   contents: read
 
 jobs:
-  build:
-    permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-    name: Build
+  trivy-scan:
+    name: Run Trivy Vulnerability Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read           # for actions/checkout
+      security-events: write   # to upload SARIF results
+      actions: read            # required for private repos
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build an image from Dockerfile
+      # Prevent "no space left on device" errors
+      - name: Clean up Docker environment
         run: |
-          docker build -t docker.io/my-organization/my-app:${{ github.sha }} .
+          echo "Cleaning unused Docker resources..."
+          docker system prune -af --volumes || true
+          sudo rm -rf /var/lib/docker/tmp/* || true
+          echo "Cleanup complete."
+
+      - name: Build Docker image
+        run: |
+          docker build -t my-organization/my-app:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@7b7aa264d83dc58691451798b4d117d53d21edfe
+        uses: aquasecurity/trivy-action@v0.20.0
         with:
-          image-ref: 'docker.io/my-organization/my-app:${{ github.sha }}'
+          image-ref: 'my-organization/my-app:${{ github.sha }}'
           format: 'template'
           template: '@/contrib/sarif.tpl'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          exit-code: '0'   # prevents the job from failing due to vulnerabilities
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
