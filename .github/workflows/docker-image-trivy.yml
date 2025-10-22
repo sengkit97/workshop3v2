@@ -28,7 +28,7 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "✅ Built image $IMAGE_NAME:$TAG"
 
-      # Step 4: Aggressive cleanup before Trivy
+      # Step 4: Aggressive cleanup before Trivyy
       - name: Cleanup Docker + OS to free space
         run: |
           echo "🧹 Cleaning Docker caches..."
